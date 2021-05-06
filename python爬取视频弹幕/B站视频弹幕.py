@@ -56,8 +56,7 @@ def get_bilibili_url(start, end):
 def get_bilibili_danmu(url_list):
     headers = {
         "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.116 Safari/537.36",
-        "cookie": "bsource=search_google; _uuid=9E5F35F3-9180-A8DA-CC15-BE9B20F97C3713674infoc; buvid3=66B04BDE-1FB7-44E8-9BB9-E7C4C0CA764134785infoc; CURRENT_FNVAL=80; blackside_state=1; rpdid=|(u)YJR)lRYm0J'uYk|um)YJl; bfe_id=61a513175dc1ae8854a560f6b82b37af; fingerprint=6411801b02d0113eba6bd799493d2992; buvid_fp=66B04BDE-1FB7-44E8-9BB9-E7C4C0CA764134785infoc; buvid_fp_plain=26F605EB-3A0C-49CF-AC1A-04104A68FF58143084infoc; SESSDATA=9fe654f8%2C1635751481%2C12f11%2A51; bili_jct=8fa1221cfa3bf525bc9246dddf688fa7; DedeUserID=31928395; DedeUserID__ckMd5=b8c7c79d20da53ef; sid=d79vwuq7"
-        # Headers中copy即可
+        "cookie": "你自己的" # Headers中copy即可
     }
 
     with open("bilibili_danmu.txt", 'w', encoding='utf-8') as file:
