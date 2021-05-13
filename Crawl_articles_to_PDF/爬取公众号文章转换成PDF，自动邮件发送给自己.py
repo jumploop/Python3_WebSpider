@@ -2,37 +2,44 @@
 # -*- coding: utf-8 -*-
 import requests  # 发送get/post请求，获取网站内容
 import wechatsogou  # 微信公众号文章爬虫框架
-import json  # json数据处理模块
+from lxml import etree   # 把html的文本内容解析成html对象
 import datetime  # 日期数据处理模块
 import pdfkit  # 可以将文本字符串/链接/文本文件转换成为pdf
 import os  # 系统文件管理
 import re  # 正则匹配模块
 import yagmail  # 邮件发送模块
 import sys  # 项目进程管理
+import time  # 时间模块
+from PyPDF2 import PdfFileReader, PdfFileWriter  # pdf读取、写入操作模块
 
 '''
-1、从二十次幂获取公众号最新的推文链接和标题
+1、从二十次幂获取公众号最新的推文链接和标题(新接口，解决必须会员才看的到数据问题)
 '''
 
 
 def get_data(publish_date):
-    # 添加Cookie 记录登录状态
-    header = {
-        'Cookie': "获取方法见文章介绍"
-    }
-    # 可以自定义设置获取文章的发布时间区间，日期越多，获取到的文章越多，本项目默认获取前一天的数据
-    start_at = publish_date
-    end_at = publish_date  # 每次只爬去前一天的数据
-    url1 = 'https://www.ershicimi.com/api/stats/articles?'
     # bid=EOdxnBO4 表示公众号 简说Python，每个公众号都有对应的bid，可以直接搜索查看
-    url2 = 'page=1&page_size=50&bid=EOdxnBO4&start_at={0}&end_at={1}&position=all'.format(start_at, end_at)
-    url3 = url1 + url2
-    r = requests.get(url3, headers=header)
+    url1 = 'https://www.ershicimi.com/a/EOdxnBO4'
+    r = requests.get(url1)
+    # 把html的文本内容解析成html对象
+    html = etree.HTML(r.text)
+    # xpath 根据标签路径提取数据
+    title = html.xpath(
+        '//*[@id="wrapper"]/div/div[2]/div[1]/div[2]/div/div[1]/div/div/h4/a/text()')  # 标题
+    publish_time = html.xpath(
+        '//*[@id="wrapper"]/div/div[2]/div[1]/div[2]/div/div[1]/div/div/p[2]/@title')  # 发布时间
+    title_url = html.xpath(
+        '//*[@id="wrapper"]/div/div[2]/div[1]/div[2]/div/div[1]/div/div/h4/a/@href')  # 文章链接
 
-    json_data = json.loads(r.text)
-    html_data = json_data['data']['articles']
-    #     print(html_data)
-    return html_data
+    # 对数据进行简单处理，选取最新发布的数据
+    data = []
+    for i in range(len(publish_time)):
+        if publish_date in publish_time[i]:
+            article = {}
+            article['content_url'] = 'https://www.ershicimi.com' + title_url[i]
+            article['title'] = title[i]
+            data.append(article)
+    return data
 
 
 '''
@@ -86,13 +93,14 @@ def url_to_pdf(url, title, targetPath, publish_date):
 
 def send_email(user_name, email, gzh_data):
     yag = yagmail.SMTP(user='你的发邮件的邮箱，可以和收件的是一个', password='你的POP3/SMTP服务密钥', host='smtp.163.com')
-    contents = ['亲爱的 ' + user_name + ' 你好:<br>',
-                '公众号 {0} {1}发布了{2}篇推文，推文标题分别为：<br>'.format(gzh_data['gzh_name'], gzh_data['publish_date'],
-                                                           len(gzh_data['save_path'])),
-                '<br>'.join(gzh_data['save_path']),
-                '<br>文章详细信息可以查看附件pdf内容，有问题可以在公众号%s联系作者提问。<br>' % gzh_data['gzh_name'],
-                '<br><br><p align="right">公众号-%s</p>' % gzh_data['gzh_name']
-                ]
+    contents = [
+        '亲爱的 ' + user_name + ' 你好:<br>',
+        '公众号 {0} {1}发布了{2}篇推文，推文标题分别为：<br>'.format(gzh_data['gzh_name'], gzh_data['publish_date'],
+                                                   len(gzh_data['save_path'])),
+        '<br>'.join(gzh_data['save_path']),
+        '<br>文章详细信息可以查看附件pdf内容，有问题可以在公众号%s联系作者提问。<br>' % gzh_data['gzh_name'],
+        '<br><br><p align="right">公众号-%s</p>' % gzh_data['gzh_name']
+    ]
     # 在邮件内容后，添加上附件路径（蛮简单实现动态添加附件，直接拼接两个列表即可哈哈哈哈）
     contents = contents + [targetPath + os.path.sep + i + '.pdf' for i in gzh_data['save_path']]
     yag.send(email, '请查看' + gzh_name + publish_date + '推文内容', contents)
@@ -110,8 +118,9 @@ print('------pdf存储目录创建成功！')
 # 1、从二十次幂获取微信公众号最新文章数据
 year = str(datetime.datetime.now().year)
 month = str(datetime.datetime.now().month)
-day = str(datetime.datetime.now().day - 1)
-publish_date = datetime.datetime.strptime(year + month + day, '%Y%m%d').strftime('%Y-%m-%d')  # 文章发布日期
+day = str(datetime.datetime.now().day - 10)
+publish_date = datetime.datetime.strptime(year + month + day,
+                                          '%Y%m%d').strftime('%Y-%m-%d')  # 文章发布日期
 html_data = get_data(publish_date)
 if html_data:
     print('------成功获取到公众号{0}{1}推文链接！'.format(gzh_name, publish_date))
@@ -129,12 +138,8 @@ for article in html_data:
 print('------pdf转换保存成功！')
 
 # 3、通过邮件将新生成的文件发送到自己的邮箱
-user_name = '收件人名称'  # 可以写自己的名字
-email = '收件邮箱地址'
-gzh_data = {
-    'gzh_name': gzh_name,
-    'publish_date': publish_date,
-    'save_path': save_path
-}
-send_email(user_name, email, gzh_data)
-print('------邮件发送成功啦！')
+# user_name = '收件人名称'  # 可以写自己的名字
+# email = '收件邮箱地址'
+# gzh_data = {'gzh_name': gzh_name, 'publish_date': publish_date, 'save_path': save_path}
+# send_email(user_name, email, gzh_data)
+# print('------邮件发送成功啦！')
