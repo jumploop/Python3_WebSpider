@@ -26,10 +26,7 @@ class QSBK(object):
         生成随机User-Agent
         :return:
         """
-        headers = {
-            'User-Agent': self.ua.random
-        }
-        return headers
+        return {'User-Agent': self.ua.random}
 
     def get_one_page(self, url):
         """
@@ -94,7 +91,7 @@ class QSBK(object):
         :return:
         """
         # 输入到to按住Tab有很多格式，储存
-        content = [line for line in content]
+        content = list(content)
         df = pd.DataFrame(content, columns=self.fieldnames)
         df.to_excel('results.xlsx', index=False)
 

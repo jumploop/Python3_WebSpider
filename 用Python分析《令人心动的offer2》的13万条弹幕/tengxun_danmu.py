@@ -17,7 +17,7 @@ def danmu(target_id, vid, name, total):
         }
         url = 'https://mfm.video.qq.com/danmu?otype=json&timestamp={0}&target_id={1}vid{2}&count=80'.format(
             page, target_id, vid)
-        print("正在提取第" + str(page) + "页")
+        print(f"正在提取第{str(page)}页")
         html = requests.get(url, headers=headers)
         bs = json.loads(html.text, strict=False)  # strict参数解决部分内容json格式解析报错
         time.sleep(1)

@@ -33,10 +33,12 @@ def get_page_num():
 def merge_data(title, publish_time, content_url):
     data = []
     for i in range(len(title)):
-        html_data = {}
-        html_data['title'] = title[i]
-        html_data['publish_time'] = publish_time[i]
-        html_data['content_url'] = 'https://www.ershicimi.com' + content_url[i]
+        html_data = {
+            'title': title[i],
+            'publish_time': publish_time[i],
+            'content_url': 'https://www.ershicimi.com' + content_url[i],
+        }
+
         data.append(html_data)
     return data
 
@@ -52,7 +54,7 @@ def get_data():
     # bid=EOdxnBO4 表示公众号 简说Python，每个公众号都有对应的bid，可以直接搜索查看
     # 循环获取所有数据
     page_num = get_page_num()
-    print('total page is {}'.format(page_num))
+    print(f'total page is {page_num}')
     html_data = []
     for i in range(page_num):
         url1 = 'https://www.ershicimi.com/a/EOdxnBO4?page=%d' % (i + 1)
@@ -106,7 +108,7 @@ def url_to_pdf(url, title, targetPath, publish_date):
     </html>
     '''
     # html字符串转换为pdf
-    filename = publish_date + '-' + ''.join(title.split())
+    filename = f'{publish_date}-' + ''.join(title.split())
     # 部分文章标题含特殊字符，不能作为文件名
     # 去除标题中的特殊字符 win / \ : * " < > | ？mac :
     # 先用正则去除基本的特殊字符，python中反斜线很烦，最后用replace函数去除
@@ -131,16 +133,14 @@ def getFileName(filedir):
                  if str(filespath).endswith('pdf')
                  ]
     file_list.sort()  # 排序
-    return file_list if file_list else []
+    return file_list or []
 
 
 # 合并同一目录下的所有PDF文件
 def MergePDF(filepath, outfile):
     output = PdfFileWriter()
     outputPages = 0
-    pdf_fileName = getFileName(filepath)
-
-    if pdf_fileName:
+    if pdf_fileName := getFileName(filepath):
         for pdf_file in pdf_fileName:
             #             print("路径：%s"%pdf_file)
 
@@ -157,10 +157,8 @@ def MergePDF(filepath, outfile):
                 output.addPage(input.getPage(iPage))
 
         print("合并后的总页数:%d." % outputPages)
-        # 写入到目标PDF文件
-        outputStream = open(os.path.join(filepath, outfile), "wb")
-        output.write(outputStream)
-        outputStream.close()
+        with open(os.path.join(filepath, outfile), "wb") as outputStream:
+            output.write(outputStream)
         print("PDF文件合并完成！")
 
     else:
@@ -183,4 +181,4 @@ if __name__ == '__main__':
             url_to_pdf(item.get('content_url'), item.get('title'), targetPath, item.get('publish_time'))
         except Exception as error:
             print(error)
-    MergePDF(targetPath, gzh_name + '.pdf')
+    MergePDF(targetPath, f'{gzh_name}.pdf')

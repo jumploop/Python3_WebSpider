@@ -8,7 +8,7 @@ def get_mangguo_danmu(num1, num2, page):
     data={}
     try:
         url = 'https://bullet-ws.hitv.com/bullet/2021/05/6/{}/{}/{}.json'
-        print("正在爬取第" + str(page) + "页")
+        print(f"正在爬取第{str(page)}页")
         danmuurl = url.format(num1, num2, page)
         res = requests.get(danmuurl)
         res.encoding = 'utf-8'
@@ -19,10 +19,7 @@ def get_mangguo_danmu(num1, num2, page):
     print(data)
     details = []
     for i in range(len(data['data']['items'])):  # 弹幕数据在json文件'data'的'items'中
-        result = {}
-        result['stype'] = num2  # 通过stype可识别期数
-        result['id'] = data['data']['items'][i]['id']  # 获取id
-
+        result = {'stype': num2, 'id': data['data']['items'][i]['id']}
         try:  # 尝试获取uname
             result['uname'] = data['data']['items'][i]['uname']
         except:
