@@ -22,9 +22,7 @@ def parse_base_info(url, headers):
         title = i['fields']['title']
         view_count = i['fields']['view_all_count']
         episode = int(i['fields']['episode'])
-        if episode == 0:
-            pass
-        else:
+        if episode != 0:
             cache = pd.DataFrame({'id': [v_id], 'title': [title], '播放量': [view_count], '第几集': [episode]})
             df = pd.concat([df, cache])
     return df
@@ -73,9 +71,11 @@ def format_url(target_id, v_id, end=85):
     """
     urls = []
     base_url = 'https://mfm.video.qq.com/danmu?otype=json&timestamp={}&target_id={}%26vid%3D{}&count=80&second_count=5'
-    for num in range(15, end * 30 + 15, 30):
-        url = base_url.format(num, target_id, v_id)
-        urls.append(url)
+    urls.extend(
+        base_url.format(num, target_id, v_id)
+        for num in range(15, end * 30 + 15, 30)
+    )
+
     return urls
 
 
@@ -86,15 +86,13 @@ def get_all_ids(part1_url, part2_url, headers):
     df = pd.concat([part_1, part_2])
     print(df)
     df.sort_values('第几集', ascending=True, inplace=True)
-    count = 1
     # 创建一个列表存储target_id
     info_lst = []
-    for i in df['id']:
+    for count, i in enumerate(df['id'], start=1):
         info = get_episode_danmu(i, headers)
         print(info)
         info_lst.append(info)
         print('正在努力爬取第 %d 集的target_id ' % count)
-        count += 1
         time.sleep(2 + random.random())
     print(' 是不是发现多了一集？别担心，会去重的 ')
     # 根据后缀ID，将target_id和后缀ID所在的表合并
@@ -110,20 +108,16 @@ def crawl_all(combine, num, page, headers):
     """
     输入包含v_id,target_id的表，并传入想要爬取多少集
     """
-    c = 1
     final_result = pd.DataFrame()
     # print( Bro,马上要开始循环爬取每一集的弹幕了 )
-    for v_id, target_id in zip(combine['v_id'][:num], combine['target_id'][:num]):
-        count = 1
+    for c, (v_id, target_id) in enumerate(zip(combine['v_id'][:num], combine['target_id'][:num]), start=1):
         urls = format_url(target_id, v_id, page)
-        for url in urls:
+        for count, url in enumerate(urls, start=1):
             result = parse_danmu(url, target_id, v_id, headers, c)
             final_result = pd.concat([final_result, result])
             time.sleep(2 + random.random())
             print('这是 %d 集的第 %d 页爬取.. ' % (c, count))
-            count += 1
         print('-------------------------------------')
-        c += 1
     return final_result
 
 

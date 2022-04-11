@@ -84,7 +84,7 @@ class Weibo(object):
             'original_video_download', 'retweet_video_download'
         ]
         for argument in argument_list:
-            if config[argument] != 0 and config[argument] != 1:
+            if config[argument] not in [0, 1]:
                 logger.warning(u'%s值应为0或1,请重新输入', config[argument])
                 sys.exit()
 
@@ -140,8 +140,7 @@ class Weibo(object):
             'containerid': '107603' + str(self.user_config['user_id']),
             'page': page
         }
-        js = self.get_json(params)
-        return js
+        return self.get_json(params)
 
     def user_to_csv(self):
         """将爬取到的用户信息写入csv文件"""
@@ -271,18 +270,16 @@ class Weibo(object):
 
     def get_long_weibo(self, id):
         """获取长微博"""
-        for i in range(5):
-            url = 'https://m.weibo.cn/detail/%s' % id
+        for _ in range(5):
+            url = f'https://m.weibo.cn/detail/{id}'
             html = requests.get(url, cookies=self.cookie).text
             html = html[html.find('"status":'):]
             html = html[:html.rfind('"hotScheme"')]
             html = html[:html.rfind(',')]
             html = '{' + html + '}'
             js = json.loads(html, strict=False)
-            weibo_info = js.get('status')
-            if weibo_info:
-                weibo = self.parse_weibo(weibo_info)
-                return weibo
+            if weibo_info := js.get('status'):
+                return self.parse_weibo(weibo_info)
             sleep(random.randint(6, 10))
 
     def get_pics(self, weibo_info):
@@ -290,17 +287,15 @@ class Weibo(object):
         if weibo_info.get('pics'):
             pic_info = weibo_info['pics']
             pic_list = [pic['large']['url'] for pic in pic_info]
-            pics = ','.join(pic_list)
+            return ','.join(pic_list)
         else:
-            pics = ''
-        return pics
+            return ''
 
     def get_live_photo(self, weibo_info):
         """获取live photo中的视频url"""
-        live_photo_list = []
-        live_photo = weibo_info.get('pic_video')
-        if live_photo:
+        if live_photo := weibo_info.get('pic_video'):
             prefix = 'https://video.weibo.com/media/play?livephoto=//us.sinaimg.cn/'
+            live_photo_list = []
             for i in live_photo.split(','):
                 if len(i.split(':')) == 2:
                     url = prefix + i.split(':')[1] + '.mov'
@@ -311,23 +306,24 @@ class Weibo(object):
         """获取微博视频url"""
         video_url = ''
         video_url_list = []
-        if weibo_info.get('page_info'):
-            if weibo_info['page_info'].get('media_info') and weibo_info[
-                    'page_info'].get('type') == 'video':
-                media_info = weibo_info['page_info']['media_info']
-                video_url = media_info.get('mp4_720p_mp4')
-                if not video_url:
-                    video_url = media_info.get('mp4_hd_url')
-                    if not video_url:
-                        video_url = media_info.get('mp4_sd_url')
-                        if not video_url:
-                            video_url = media_info.get('stream_url_hd')
-                            if not video_url:
-                                video_url = media_info.get('stream_url')
+        if (
+            weibo_info.get('page_info')
+            and weibo_info['page_info'].get('media_info')
+            and weibo_info['page_info'].get('type') == 'video'
+        ):
+            media_info = weibo_info['page_info']['media_info']
+            video_url = media_info.get('mp4_720p_mp4')
+            if not video_url:
+                video_url = media_info.get('mp4_hd_url')
+            if not video_url:
+                video_url = media_info.get('mp4_sd_url')
+            if not video_url:
+                video_url = media_info.get('stream_url_hd')
+            if not video_url:
+                video_url = media_info.get('stream_url')
         if video_url:
             video_url_list.append(video_url)
-        live_photo_list = self.get_live_photo(weibo_info)
-        if live_photo_list:
+        if live_photo_list := self.get_live_photo(weibo_info):
             video_url_list += live_photo_list
         return ';'.join(video_url_list)
 
@@ -344,7 +340,7 @@ class Weibo(object):
             error_file = self.get_filepath(
                 type) + os.sep + 'not_downloaded.txt'
             with open(error_file, 'ab') as f:
-                url = str(weibo_id) + ':' + file_path + ':' + url + '\n'
+                url = f'{str(weibo_id)}:{file_path}:{url}' + '\n'
                 f.write(url.encode(sys.stdout.encoding))
             logger.exception(e)
 
@@ -357,19 +353,13 @@ class Weibo(object):
                 url_list = urls.split(',')
                 for i, url in enumerate(url_list):
                     index = url.rfind('.')
-                    if len(url) - index >= 5:
-                        file_suffix = '.jpg'
-                    else:
-                        file_suffix = url[index:]
-                    file_name = file_prefix + '_' + str(i + 1) + file_suffix
+                    file_suffix = '.jpg' if len(url) - index >= 5 else url[index:]
+                    file_name = f'{file_prefix}_{str(i + 1)}{file_suffix}'
                     file_path = file_dir + os.sep + file_name
                     self.download_one_file(url, file_path, file_type, w['id'])
             else:
                 index = urls.rfind('.')
-                if len(urls) - index > 5:
-                    file_suffix = '.jpg'
-                else:
-                    file_suffix = urls[index:]
+                file_suffix = '.jpg' if len(urls) - index > 5 else urls[index:]
                 file_name = file_prefix + file_suffix
                 file_path = file_dir + os.sep + file_name
                 self.download_one_file(urls, file_path, file_type, w['id'])
@@ -380,7 +370,7 @@ class Weibo(object):
                 if url_list[0].endswith('.mov'):
                     file_suffix = '.mov'
                 for i, url in enumerate(url_list):
-                    file_name = file_prefix + '_' + str(i + 1) + file_suffix
+                    file_name = f'{file_prefix}_{str(i + 1)}{file_suffix}'
                     file_path = file_dir + os.sep + file_name
                     self.download_one_file(url, file_path, file_type, w['id'])
             else:
@@ -400,10 +390,7 @@ class Weibo(object):
             else:
                 describe = u'视频'
                 key = 'video_url'
-            if weibo_type == 'original':
-                describe = u'原创微博' + describe
-            else:
-                describe = u'转发微博' + describe
+            describe = f'原创微博{describe}' if weibo_type == 'original' else f'转发微博{describe}'
             logger.info(u'即将进行%s下载', describe)
             file_dir = self.get_filepath(file_type)
             file_dir = file_dir + os.sep + describe
@@ -426,13 +413,15 @@ class Weibo(object):
         """获取微博发布位置"""
         location_icon = 'timeline_card_small_location_default.png'
         span_list = selector.xpath('//span')
-        location = ''
-        for i, span in enumerate(span_list):
-            if span.xpath('img/@src'):
-                if location_icon in span.xpath('img/@src')[0]:
-                    location = span_list[i + 1].xpath('string(.)')
-                    break
-        return location
+        return next(
+            (
+                span_list[i + 1].xpath('string(.)')
+                for i, span in enumerate(span_list)
+                if span.xpath('img/@src')
+                and location_icon in span.xpath('img/@src')[0]
+            ),
+            '',
+        )
 
     def get_article_url(self, selector):
         """获取微博中头条文章的url"""
@@ -447,36 +436,36 @@ class Weibo(object):
     def get_topics(self, selector):
         """获取参与的微博话题"""
         span_list = selector.xpath("//span[@class='surl-text']")
-        topics = ''
         topic_list = []
         for span in span_list:
             text = span.xpath('string(.)')
             if len(text) > 2 and text[0] == '#' and text[-1] == '#':
                 topic_list.append(text[1:-1])
-        if topic_list:
-            topics = ','.join(topic_list)
-        return topics
+        return ','.join(topic_list) if topic_list else ''
 
     def get_at_users(self, selector):
         """获取@用户"""
         a_list = selector.xpath('//a')
-        at_users = ''
-        at_list = []
-        for a in a_list:
-            if '@' + a.xpath('@href')[0][3:] == a.xpath('string(.)'):
-                at_list.append(a.xpath('string(.)')[1:])
-        if at_list:
-            at_users = ','.join(at_list)
-        return at_users
+        return (
+            ','.join(at_list)
+            if (
+                at_list := [
+                    a.xpath('string(.)')[1:]
+                    for a in a_list
+                    if '@' + a.xpath('@href')[0][3:] == a.xpath('string(.)')
+                ]
+            )
+            else ''
+        )
 
     def string_to_int(self, string):
         """字符串转换为整数"""
         if isinstance(string, int):
             return string
         elif string.endswith(u'万+'):
-            string = int(string[:-2] + '0000')
+            string = int(f'{string[:-2]}0000')
         elif string.endswith(u'万'):
-            string = int(string[:-1] + '0000')
+            string = int(f'{string[:-1]}0000')
         return int(string)
 
     def standardize_date(self, created_at):
@@ -496,7 +485,7 @@ class Weibo(object):
             created_at = (datetime.now() - day).strftime('%Y-%m-%d')
         elif created_at.count('-') == 1:
             year = datetime.now().strftime('%Y')
-            created_at = year + '-' + created_at
+            created_at = f'{year}-{created_at}'
         return created_at
 
     def standardize_info(self, weibo):
@@ -601,27 +590,23 @@ class Weibo(object):
                 retweet_id = retweeted_status.get('id')
                 is_long_retweet = retweeted_status.get('isLongText')
                 if is_long:
-                    weibo = self.get_long_weibo(weibo_id)
-                    if not weibo:
-                        weibo = self.parse_weibo(weibo_info)
+                    weibo = self.get_long_weibo(weibo_id) or self.parse_weibo(weibo_info)
                 else:
                     weibo = self.parse_weibo(weibo_info)
-                if is_long_retweet:
-                    retweet = self.get_long_weibo(retweet_id)
-                    if not retweet:
-                        retweet = self.parse_weibo(retweeted_status)
-                else:
-                    retweet = self.parse_weibo(retweeted_status)
+                retweet = (
+                    self.get_long_weibo(retweet_id)
+                    or self.parse_weibo(retweeted_status)
+                    if is_long_retweet
+                    else self.parse_weibo(retweeted_status)
+                )
+
                 retweet['created_at'] = self.standardize_date(
                     retweeted_status['created_at'])
                 weibo['retweet'] = retweet
-            else:  # 原创
-                if is_long:
-                    weibo = self.get_long_weibo(weibo_id)
-                    if not weibo:
-                        weibo = self.parse_weibo(weibo_info)
-                else:
-                    weibo = self.parse_weibo(weibo_info)
+            elif is_long:
+                weibo = self.get_long_weibo(weibo_id) or self.parse_weibo(weibo_info)
+            else:
+                weibo = self.parse_weibo(weibo_info)
             weibo['created_at'] = self.standardize_date(
                 weibo_info['created_at'])
             return weibo
@@ -632,10 +617,7 @@ class Weibo(object):
         """判断微博是否为置顶微博"""
         weibo_info = info['mblog']
         title = weibo_info.get('title')
-        if title and title.get('text') == u'置顶':
-            return True
-        else:
-            return False
+        return bool(title and title.get('text') == u'置顶')
 
     def get_one_page(self, page):
         """获取一页的全部微博"""
@@ -645,8 +627,7 @@ class Weibo(object):
                 weibos = js['data']['cards']
                 for w in weibos:
                     if w['card_type'] == 9:
-                        wb = self.get_one_weibo(w)
-                        if wb:
+                        if wb := self.get_one_weibo(w):
                             if wb['id'] in self.weibo_id_list:
                                 continue
                             created_at = datetime.strptime(
@@ -656,11 +637,11 @@ class Weibo(object):
                             if created_at < since_date:
                                 if self.is_pinned_weibo(w):
                                     continue
-                                else:
-                                    logger.info(u'{}已获取{}({})的第{}页微博{}'.format(
-                                        '-' * 30, self.user['screen_name'],
-                                        self.user['id'], page, '-' * 30))
-                                    return True
+                                logger.info(
+                                    f"{'-' * 30}已获取{self.user['screen_name']}({self.user['id']})的第{page}页微博{'-' * 30}"
+                                )
+
+                                return True
                             if (not self.filter) or (
                                     'retweet' not in wb.keys()):
                                 self.weibo.append(wb)
@@ -669,9 +650,10 @@ class Weibo(object):
                                 self.print_weibo(wb)
                             else:
                                 logger.info(u'正在过滤转发微博')
-            logger.info(u'{}已获取{}({})的第{}页微博{}'.format(
-                '-' * 30, self.user['screen_name'], self.user['id'], page,
-                '-' * 30))
+            logger.info(
+                f"{'-' * 30}已获取{self.user['screen_name']}({self.user['id']})的第{page}页微博{'-' * 30}"
+            )
+
         except Exception as e:
             logger.exception(e)
 
@@ -679,8 +661,7 @@ class Weibo(object):
         """获取微博页数"""
         try:
             weibo_count = self.user['statuses_count']
-            page_count = int(math.ceil(weibo_count / 10.0))
-            return page_count
+            return int(math.ceil(weibo_count / 10.0))
         except KeyError:
             logger.exception(
                 u'程序出错，错误原因可能为以下两者：\n'
@@ -710,7 +691,7 @@ class Weibo(object):
                     for k2, v2 in w['retweet'].items():
                         if 'unicode' in str(type(v2)):
                             v2 = v2.encode('utf-8')
-                        wb['retweet_' + k2] = v2
+                        wb[f'retweet_{k2}'] = v2
                 else:
                     wb['is_original'] = True
             write_info.append(wb)
@@ -722,15 +703,14 @@ class Weibo(object):
             file_dir = os.path.split(
                 os.path.realpath(__file__)
             )[0] + os.sep + 'weibo' + os.sep + self.user['screen_name']
-            if type == 'img' or type == 'video':
+            if type in ['img', 'video']:
                 file_dir = file_dir + os.sep + type
             if not os.path.isdir(file_dir):
                 os.makedirs(file_dir)
-            if type == 'img' or type == 'video':
+            if type in ['img', 'video']:
                 return file_dir
-            file_path = file_dir + os.sep + self.user_config[
-                'user_id'] + '.' + type
-            return file_path
+            return file_dir + os.sep + self.user_config['user_id'] + '.' + type
+
         except Exception as e:
             logger.exception(e)
 
@@ -742,7 +722,7 @@ class Weibo(object):
         ]
         if not self.filter:
             result_headers2 = ['是否原创', '源用户id', '源用户昵称']
-            result_headers3 = ['源微博' + r for r in result_headers]
+            result_headers3 = [f'源微博{r}' for r in result_headers]
             result_headers = result_headers + result_headers2 + result_headers3
         return result_headers
 
@@ -756,10 +736,7 @@ class Weibo(object):
 
     def csv_helper(self, headers, result_data, file_path):
         """将指定信息写入csv文件"""
-        if not os.path.isfile(file_path):
-            is_first_write = 1
-        else:
-            is_first_write = 0
+        is_first_write = 0 if os.path.isfile(file_path) else 1
         if sys.version < '3':  # python2.x
             with open(file_path, 'ab') as f:
                 f.write(codecs.BOM_UTF8)
@@ -783,11 +760,11 @@ class Weibo(object):
         """更新要写入json结果文件中的数据，已经存在于json中的信息更新为最新值，不存在的信息添加到data中"""
         data['user'] = self.user
         if data.get('weibo'):
-            is_new = 1  # 待写入微博是否全部为新微博，即待写入微博与json中的数据不重复
-            for old in data['weibo']:
-                if weibo_info[-1]['id'] == old['id']:
-                    is_new = 0
-                    break
+            is_new = next(
+                (0 for old in data['weibo'] if weibo_info[-1]['id'] == old['id']),
+                1,
+            )
+
             if is_new == 0:
                 for new in weibo_info:
                     flag = 1
@@ -981,40 +958,44 @@ class Weibo(object):
                 sys.exit()
             for i, line in enumerate(lines):
                 info = line.split(' ')
-                if len(info) > 0 and info[0].isdigit():
-                    if self.user_config['user_id'] == info[0]:
-                        if len(info) == 1:
-                            info.append(self.user['screen_name'])
-                            info.append(self.start_date)
-                        if len(info) == 2:
-                            info.append(self.start_date)
-                        if len(info) > 2:
-                            info[2] = self.start_date
-                        lines[i] = ' '.join(info)
-                        break
+                if (
+                    len(info) > 0
+                    and info[0].isdigit()
+                    and self.user_config['user_id'] == info[0]
+                ):
+                    if len(info) == 1:
+                        info.append(self.user['screen_name'])
+                        info.append(self.start_date)
+                    if len(info) == 2:
+                        info.append(self.start_date)
+                    if len(info) > 2:
+                        info[2] = self.start_date
+                    lines[i] = ' '.join(info)
+                    break
         with codecs.open(user_config_file_path, 'w', encoding='utf-8') as f:
             f.write('\n'.join(lines))
 
     def write_data(self, wrote_count):
         """将爬到的信息写入文件或数据库"""
-        if self.got_count > wrote_count:
-            if 'csv' in self.write_mode:
-                self.write_csv(wrote_count)
-            if 'json' in self.write_mode:
-                self.write_json(wrote_count)
-            if 'mysql' in self.write_mode:
-                self.weibo_to_mysql(wrote_count)
-            if 'mongo' in self.write_mode:
-                self.weibo_to_mongodb(wrote_count)
-            if self.original_pic_download:
-                self.download_files('img', 'original', wrote_count)
-            if self.original_video_download:
-                self.download_files('video', 'original', wrote_count)
-            if not self.filter:
-                if self.retweet_pic_download:
-                    self.download_files('img', 'retweet', wrote_count)
-                if self.retweet_video_download:
-                    self.download_files('video', 'retweet', wrote_count)
+        if self.got_count <= wrote_count:
+            return
+        if 'csv' in self.write_mode:
+            self.write_csv(wrote_count)
+        if 'json' in self.write_mode:
+            self.write_json(wrote_count)
+        if 'mysql' in self.write_mode:
+            self.weibo_to_mysql(wrote_count)
+        if 'mongo' in self.write_mode:
+            self.weibo_to_mongodb(wrote_count)
+        if self.original_pic_download:
+            self.download_files('img', 'original', wrote_count)
+        if self.original_video_download:
+            self.download_files('video', 'original', wrote_count)
+        if not self.filter:
+            if self.retweet_pic_download:
+                self.download_files('img', 'retweet', wrote_count)
+            if self.retweet_video_download:
+                self.download_files('video', 'retweet', wrote_count)
 
     def get_pages(self):
         """获取全部微博"""
@@ -1066,12 +1047,13 @@ class Weibo(object):
             for line in lines:
                 info = line.split(' ')
                 if len(info) > 0 and info[0].isdigit():
-                    user_config = {}
-                    user_config['user_id'] = info[0]
-                    if len(info) > 2 and self.is_date(info[2]):
-                        user_config['since_date'] = info[2]
-                    else:
-                        user_config['since_date'] = self.since_date
+                    user_config = {
+                        'user_id': info[0],
+                        'since_date': info[2]
+                        if len(info) > 2 and self.is_date(info[2])
+                        else self.since_date,
+                    }
+
                     if user_config not in user_config_list:
                         user_config_list.append(user_config)
         return user_config_list
@@ -1108,8 +1090,7 @@ def get_config():
         sys.exit()
     try:
         with open(config_path) as f:
-            config = json.loads(f.read())
-            return config
+            return json.loads(f.read())
     except ValueError:
         logger.error(u'config.json 格式不正确，请参考 '
                      u'https://github.com/dataabc/weibo-crawler#3程序设置')

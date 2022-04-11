@@ -60,12 +60,11 @@ class BookSpider:
         files = [os.path.join(self.book_html, file) for file in os.listdir(self.book_html)]
         print(files)
         for file in sorted(files):
-            html = etree.parse(file, etree.HTMLParser())
-            yield html
+            yield etree.parse(file, etree.HTMLParser())
 
     def write_to_file(self):
         """将小说写入文件"""
-        path = Path(self.book_dir) / (self.book_name + '.txt')
+        path = Path(self.book_dir) / f'{self.book_name}.txt'
         print(path)
         with path.open('w', encoding='utf-8') as book_file:
             for html in self.parse_html_file():

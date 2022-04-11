@@ -85,7 +85,7 @@ class Comsumer(threading.Thread):
             # with open(image_path, "wb")as file:
             #     file.write(response.content)
             # time.sleep(uniform(0, 2))
-            print("%s下载成功!" % image_path)
+            print(f"{image_path}下载成功!")
         except BaseException as err:
             print(f'下载失败, image url:{image_url}, image path:{image_path}, error: {err}')
 
@@ -97,18 +97,18 @@ def main():
     image_queue = Queue(30000)
 
     for i in range(25):
-        img_url = "https://apps.game.qq.com/cgi-bin/ams/module/ishow/V1.0/query/workList_inc.cgi?activityId=2735&sVerifyCode=ABCD&sDataType=JSON&iListNum=20&totalpage=0&page={}&iOrder=0&iSortNumClose=1&171003449092155893818_1620870158277&iAMSActivityId=51991&_everyRead=true&iTypeId=2&iFlowId=267733&iActId=2735&iModuleId=2735&_=1620870158575".format(
-            i)
+        img_url = f"https://apps.game.qq.com/cgi-bin/ams/module/ishow/V1.0/query/workList_inc.cgi?activityId=2735&sVerifyCode=ABCD&sDataType=JSON&iListNum=20&totalpage=0&page={i}&iOrder=0&iSortNumClose=1&171003449092155893818_1620870158277&iAMSActivityId=51991&_everyRead=true&iTypeId=2&iFlowId=267733&iActId=2735&iModuleId=2735&_=1620870158575"
+
 
         page_queue.put(img_url)
 
     # 创建3个生产者线程
-    for i in range(3):
+    for _ in range(3):
         pt = Producer(page_queue, image_queue)
         pt.start()
 
     # 创建5个消费者线程
-    for i in range(5):
+    for _ in range(5):
         ct = Comsumer(image_queue)
         ct.start()
 

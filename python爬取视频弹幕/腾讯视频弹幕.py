@@ -11,9 +11,9 @@ for page in range(15, 12399, 30):
         'User-Agent':
         'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.132 Safari/537.36'
     }
-    url = 'https://mfm.video.qq.com/danmu?otype=json&timestamp={}&target_id=5938032297%26vid%3Dx0034hxucmw&count=80'.format(
-        page)
-    print("正在提取第" + str(page) + "页")
+    url = f'https://mfm.video.qq.com/danmu?otype=json&timestamp={page}&target_id=5938032297%26vid%3Dx0034hxucmw&count=80'
+
+    print(f"正在提取第{str(page)}页")
     html = requests.get(url, headers=headers)
     bs = json.loads(html.text, strict=False)  # strict参数解决部分内容json格式解析报错
     print(bs)

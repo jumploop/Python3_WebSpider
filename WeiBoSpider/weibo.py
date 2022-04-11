@@ -49,17 +49,17 @@ class WeiBo:
             print('Error', e.args)
 
     def parse_page(self, json):
-        if json:
-            items = json.get('data').get('cards')
-            for item in items:
-                item = item.get('mblog')
-                weibo = {}
-                weibo['id'] = item.get('id')
-                weibo['text'] = pq(item.get('text')).text()
-                weibo['attitudes'] = item.get('attitudes_count')
-                weibo['comments'] = item.get('comments_count')
-                weibo['reposts'] = item.get('reposts_count')
-                yield weibo
+        if not json:
+            return
+        items = json.get('data').get('cards')
+        for item in items:
+            item = item.get('mblog')
+            weibo = {'id': item.get('id')}
+            weibo['text'] = pq(item.get('text')).text()
+            weibo['attitudes'] = item.get('attitudes_count')
+            weibo['comments'] = item.get('comments_count')
+            weibo['reposts'] = item.get('reposts_count')
+            yield weibo
 
 
 def main():

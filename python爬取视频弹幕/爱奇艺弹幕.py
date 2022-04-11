@@ -10,8 +10,7 @@ def download_xml(url):
 
 def zipdecode(bulletold):
     '对zip压缩的二进制内容解码成文本'
-    decode = zlib.decompress(bytearray(bulletold), 15 + 32).decode('utf-8')
-    return decode
+    return zlib.decompress(bytearray(bulletold), 15 + 32).decode('utf-8')
 
 
 for x in range(1,12):
@@ -19,7 +18,7 @@ for x in range(1,12):
     url = 'https://cmts.iqiyi.com/bullet/62/00/5981449914376200_300_' + str(x) + '.z'
     xml = download_xml(url)
     # 把编码好的文件分别写入17个xml文件中（类似于txt文件），方便后边取数据
-    with open('./aiqiyi/iqiyi' + str(x) + '.xml', 'w', encoding='utf-8') as f:
+    with open(f'./aiqiyi/iqiyi{str(x)}.xml', 'w', encoding='utf-8') as f:
         f.write(xml)
 
 # 2.读取xml文件中的弹幕数据数据
@@ -55,7 +54,7 @@ def xml_parse_(file_name):
 
 with open("aiyiqi_danmu.txt", mode="w", encoding="utf-8") as f:
     for x in range(1, 12):
-        l = xml_parse_("./aiqiyi/iqiyi" + str(x) + ".xml")
+        l = xml_parse_(f"./aiqiyi/iqiyi{str(x)}.xml")
         for line in l:
             f.write(line)
             f.write("\n")

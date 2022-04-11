@@ -24,10 +24,7 @@ class QiDian(object):
         生成随机User-Agent
         :return:
         """
-        headers = {
-            'User-Agent': self.ua.random
-        }
-        return headers
+        return {'User-Agent': self.ua.random}
 
     def get_one_page(self, url):
         """

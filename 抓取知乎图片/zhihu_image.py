@@ -19,7 +19,7 @@ while i < 10:
     time.sleep(4)
     try:
         driver.find_element_by_css_selector('button.QuestionMainAction').click()
-        print("page" + str(i))
+        print(f"page{i}")
         time.sleep(3)
     except:
         break
@@ -34,7 +34,7 @@ n = 0
 
 while n < len(content_list):
     i = time.time()
-    local = (r"%s.jpg" % (i))
+    local = f"{i}.jpg"
     urllib.request.urlretrieve(content_list[n], local)
-    print("编号：" + str(i))
-    n = n + 1
+    print(f"编号：{str(i)}")
+    n += 1

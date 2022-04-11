@@ -18,7 +18,7 @@ def get_girl_image(number):
     press(ENTER)
     time.sleep(3)
     for i in range(number):
-        image = driver.find_element_by_name('pn{}'.format(i))
+        image = driver.find_element_by_name(f'pn{i}')
         click(image)
         time.sleep(2)
         click('下载')

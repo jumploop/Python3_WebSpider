@@ -89,7 +89,7 @@ async def download_file_by_url(url, session=None):
                 print('\t{} from {} : Failed : {}'.format(file_name, url, '404 - Not found'))
                 return fail, url
 
-            if not response.status == 200:
+            if response.status != 200:
                 print('\t{} from {} : Failed : HTTP response {}'.format(file_name, url, response.status))
                 return fail, url
 

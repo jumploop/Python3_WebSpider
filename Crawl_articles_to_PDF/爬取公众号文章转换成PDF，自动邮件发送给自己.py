@@ -35,9 +35,11 @@ def get_data(publish_date):
     data = []
     for i in range(len(publish_time)):
         if publish_date in publish_time[i]:
-            article = {}
-            article['content_url'] = 'https://www.ershicimi.com' + title_url[i]
-            article['title'] = title[i]
+            article = {
+                'content_url': 'https://www.ershicimi.com' + title_url[i],
+                'title': title[i],
+            }
+
             data.append(article)
     return data
 
@@ -77,7 +79,7 @@ def url_to_pdf(url, title, targetPath, publish_date):
     </html>
     '''
     # html字符串转换为pdf
-    filename = publish_date + '-' + title
+    filename = f'{publish_date}-{title}'
     # 部分文章标题含特殊字符，不能作为文件名
     # 去除标题中的特殊字符 win / \ : * " < > | ？ mac :
     # 先用正则去除基本的特殊字符，python中反斜线很烦，最后用replace函数去除
@@ -94,16 +96,23 @@ def url_to_pdf(url, title, targetPath, publish_date):
 def send_email(user_name, email, gzh_data):
     yag = yagmail.SMTP(user='你的发邮件的邮箱，可以和收件的是一个', password='你的POP3/SMTP服务密钥', host='smtp.163.com')
     contents = [
-        '亲爱的 ' + user_name + ' 你好:<br>',
-        '公众号 {0} {1}发布了{2}篇推文，推文标题分别为：<br>'.format(gzh_data['gzh_name'], gzh_data['publish_date'],
-                                                   len(gzh_data['save_path'])),
+        f'亲爱的 {user_name} 你好:<br>',
+        '公众号 {0} {1}发布了{2}篇推文，推文标题分别为：<br>'.format(
+            gzh_data['gzh_name'],
+            gzh_data['publish_date'],
+            len(gzh_data['save_path']),
+        ),
         '<br>'.join(gzh_data['save_path']),
-        '<br>文章详细信息可以查看附件pdf内容，有问题可以在公众号%s联系作者提问。<br>' % gzh_data['gzh_name'],
-        '<br><br><p align="right">公众号-%s</p>' % gzh_data['gzh_name']
+        f"<br>文章详细信息可以查看附件pdf内容，有问题可以在公众号{gzh_data['gzh_name']}联系作者提问。<br>",
+        '<br><br><p align="right">公众号-%s</p>' % gzh_data['gzh_name'],
     ]
+
     # 在邮件内容后，添加上附件路径（蛮简单实现动态添加附件，直接拼接两个列表即可哈哈哈哈）
-    contents = contents + [targetPath + os.path.sep + i + '.pdf' for i in gzh_data['save_path']]
-    yag.send(email, '请查看' + gzh_name + publish_date + '推文内容', contents)
+    contents += [
+        targetPath + os.path.sep + i + '.pdf' for i in gzh_data['save_path']
+    ]
+
+    yag.send(email, f'请查看{gzh_name}{publish_date}推文内容', contents)
 
 
 # 程序开始

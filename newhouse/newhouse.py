@@ -314,7 +314,7 @@ def main():
             print(response.status_code)
             if response.status_code == 200:
                 re = response.content.decode('utf-8')
-                print("正在提取" + str(qy) + '第' + str(page) + "页")
+                print(f"正在提取{str(qy)}第{str(page)}页")
                 # time.sleep(random.uniform(1, 2))
                 print("-" * 80)
                 # print(re)
@@ -325,7 +325,7 @@ def main():
                         '//*[@id="parent-content"]/div/div[6]/div/div[1]/div[2]/div[1]/div[2]/div[1]/div[1]/a/@href'
                     ))
                 # print(len(num))
-                if len(num) == 0:
+                if not num:
                     break
 
 
